@@ -1,6 +1,16 @@
 # How to
 
 ## First time
+install nix
+``` bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+install direnv
+```
+nix profile install nixpkgs#direnv
+```
+
 ```bash
 cp .env-sample .env
 vi .env # edit the file
