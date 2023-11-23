@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+    <style>
+        #map { width: 100%; height:20% }
+        .mapboxgl-ctrl-geocoder--icon{
+            visibility: collapse;
+        }
+        .mapboxgl-ctrl-geocoder--button{
+            visibility: collapse;
+        }
+    </style>
+    <title>FIXFAST</title>
+</head>
+<body id="inicia-sesion">
+    <div class="form-container sign-in-container">
+        <form action="">
+            <h1 style="margin-bottom: 2rem;">Solicita un servicio</h1>
+            <h3>Estas solicitando un servicio de el Fixer: </h3>
+            <span>Llena los campos</span>
+            <h3>Ingresa una breve descripcion el servicio que solicitas</h3>
+            <input type="text" placeholder="Descripcion" id="descripcionInput"/>
+            <h3>Ingresa la fecha en la que quieres el servicio</h3>
+            <input type="date" placeholder="26/05/2023" id="fechaInput"/>
+            <h3>Ingresa la dirección a la que quieres mandar el servicio</h3>
+            <div id="map"></div>
+            <button type="submit" onclick="solicitarButtonClick()"  id="solicitar-servicio">SOLICITAR</button>
+        </form>
+    </div>
+    <div class="overlay-container">
+        <div class="overlay" style="background-image: url(https://images.pexels.com/photos/3768910/pexels-photo-3768910.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1)">
+            <div class="overlay-panel overlay-right">
+                <h1>Soluciones locales y rapidas</h1>
+            </div>
+        </div>
+    </div>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibmFuY3ltYXllayIsImEiOiJjbGh0dmdlamEyZ3FyM2RudTA5N2p6cjNwIn0.rI0dhokmQXjJhDpNC7DMNw';
+            const map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [-98.198149, 19.04372],
+                zoom: 13
+            });
+    
+        const geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl
+        });
+
+        map.addControl(geocoder, 'top-left');
+
+        map.on('load', () => {
+            // Listen for the `geocoder.input` event that is triggered when a user
+            // makes a selection
+            geocoder.on('result', (event) => {
+            localStorage.setItem("direccion",event.result.place_name);
+            localStorage.setItem("latitude",event.result.center[0]);
+            localStorage.setItem("longitude",event.result.center[1]);
+            });
+        });
+    </script>
+</body>
+</html>
