@@ -21,7 +21,6 @@ tags
 metals.sbt
 .vscode
 .direnv/
-*.png
 
 
 # npm
