@@ -1,5 +1,35 @@
 @import url("https://fonts.googleapis.com/css2?family=Koulen&family=Oswald:wght@500&family=Roboto+Serif:opsz@8..144&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap");
+
+body {
+  /*display: grid; */
+  /*grid-template-rows: 5rem min-content 9rem;*/
+  /* grid-template-rows: 5rem minmax(calc(100vh - 14rem), auto) 9rem; */
+  /* height: 70vh; */
+  /*min-height: 72vh;
+  height: 72vh;*/
+  display: flex;
+  flex-direction: column;
+}
+body > div#banner-2 {
+  height: 100%;
+}
+body > div#banner-2 > div#carouselExampleIndicators {
+  height: inherit;
+}/* carousel-inner carousel-item static-slider10 container */
+body > div#banner-2 > div#carouselExampleIndicators > div.carousel-inner {
+  height: inherit;
+}
+body > div#banner-2 > div#carouselExampleIndicators > div.carousel-inner > div.carousel-item {
+  height: inherit;
+}
+body > div#banner-2 > div#carouselExampleIndicators > div.carousel-inner > div.carousel-item > div.static-slider10 {
+  height: inherit;
+  display: flex;
+}
+body > div#banner-2 > div#carouselExampleIndicators > div.carousel-inner > div.carousel-item > div.static-slider10 > div.container {
+  margin: auto;
+}
 nav {
   margin-top: 1rem;
   margin-bottom: 1rem;
@@ -146,6 +176,7 @@ footer {
   color: white;
   height: 7rem;
   margin-top: 2rem;
+  padding: 2.6rem 0;
 }
 footer h1 {
   margin-left: 1rem;
@@ -1118,6 +1149,20 @@ a {
   margin: 0 5px;
   height: 40px;
   width: 40px;
+}
+
+#profile-container {
+  background-image: url(../../assets/images/no-background-image.jpg);
+  height: 100%;
+  background-repeat-y: no-repeat;
+  background-size: 100% 200px;
+}
+
+#profile-container > #side-nav-profile {
+  margin-top: 80px;
+  position: absolute;
+  z-index: 1 !important;
+  height: 600px !important
 }
 
 #profile-container #foto-portada img {
