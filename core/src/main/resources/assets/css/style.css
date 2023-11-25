@@ -1160,7 +1160,6 @@ a {
 
 #profile-container > #side-nav-profile {
   margin-top: 80px;
-  position: absolute;
   z-index: 1 !important;
   height: 600px !important
 }
