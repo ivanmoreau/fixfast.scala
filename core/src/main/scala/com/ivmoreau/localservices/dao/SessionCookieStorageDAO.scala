@@ -5,15 +5,16 @@ import cats.effect.{IO, Resource}
 import dev.profunktor.redis4cats.RedisCommands
 import tsec.authentication.{AuthEncryptedCookie, BackingStore}
 import tsec.cipher.symmetric.jca.AES128GCM
-import tsec.common.SecureRandomId
+
+import java.util.UUID
 
 trait SessionCookieStorageDAO
     extends BackingStore[
       IO,
-      SecureRandomId,
+      UUID,
       AuthEncryptedCookie[AES128GCM, Int]
     ]:
-  val getId: AuthEncryptedCookie[AES128GCM, Int] => SecureRandomId
+  val getId: AuthEncryptedCookie[AES128GCM, Int] => UUID
 
   override def put(
       elem: AuthEncryptedCookie[AES128GCM, Int]
@@ -23,19 +24,19 @@ trait SessionCookieStorageDAO
       v: AuthEncryptedCookie[AES128GCM, Int]
   ): IO[AuthEncryptedCookie[AES128GCM, Int]]
 
-  override def delete(id: SecureRandomId): IO[Unit]
+  override def delete(id: UUID): IO[Unit]
 
   override def get(
-      id: SecureRandomId
+      id: UUID
   ): OptionT[IO, AuthEncryptedCookie[AES128GCM, Int]]
 end SessionCookieStorageDAO
 
 case class SessionCookieStorageDAORedisImpl(
     redisConnection: Resource[
       IO,
-      RedisCommands[IO, SecureRandomId, AuthEncryptedCookie[AES128GCM, Int]]
+      RedisCommands[IO, UUID, AuthEncryptedCookie[AES128GCM, Int]]
     ],
-    getId: AuthEncryptedCookie[AES128GCM, Int] => SecureRandomId
+    getId: AuthEncryptedCookie[AES128GCM, Int] => UUID
 ) extends SessionCookieStorageDAO:
   override def put(
       elem: AuthEncryptedCookie[AES128GCM, Int]
@@ -49,16 +50,43 @@ case class SessionCookieStorageDAORedisImpl(
     conn.set(getId(v), v).map(_ => v)
   }
 
-  override def delete(id: SecureRandomId): IO[Unit] = redisConnection.use {
-    conn =>
-      conn.del(id).map(_ => ())
+  override def delete(id: UUID): IO[Unit] = redisConnection.use { conn =>
+    conn.del(id).map(_ => ())
   }
 
   override def get(
-      id: SecureRandomId
+      id: UUID
   ): OptionT[IO, AuthEncryptedCookie[AES128GCM, Int]] = OptionT(
     redisConnection.use { conn =>
       conn.get(id)
     }
   )
 end SessionCookieStorageDAORedisImpl
+
+case class SessionCookieStorageDAOSimpleImpl(
+    getId: AuthEncryptedCookie[AES128GCM, Int] => UUID
+) extends SessionCookieStorageDAO:
+
+  var storage: Map[UUID, AuthEncryptedCookie[AES128GCM, Int]] =
+    Map.empty
+  override def put(
+      elem: AuthEncryptedCookie[AES128GCM, Int]
+  ): IO[AuthEncryptedCookie[AES128GCM, Int]] =
+    storage = storage + (getId(elem) -> elem)
+    IO.pure(elem)
+
+  override def update(
+      v: AuthEncryptedCookie[AES128GCM, Int]
+  ): IO[AuthEncryptedCookie[AES128GCM, Int]] =
+    storage = storage + (getId(v) -> v)
+    IO.pure(v)
+
+  override def delete(id: UUID): IO[Unit] =
+    storage = storage - id
+    IO.unit
+
+  override def get(
+      id: UUID
+  ): OptionT[IO, AuthEncryptedCookie[AES128GCM, Int]] =
+    OptionT.fromOption[IO](storage.get(id))
+end SessionCookieStorageDAOSimpleImpl

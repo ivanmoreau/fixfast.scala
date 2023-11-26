@@ -1,11 +1,12 @@
 package com.ivmoreau.localservices.dao
 
+import cats.data.OptionT
 import cats.effect.{IO, Resource}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-
 import com.ivmoreau.localservices.model.User
+import tsec.authentication.IdentityStore
 
 trait UserDAO:
   def fetchUser(email: String): IO[Option[User]]
@@ -45,3 +46,11 @@ case class UserDAOSkunkImpl(
     )
   end insertUser
 end UserDAOSkunkImpl
+
+class IdentityCookieStoreAccessor(
+    userDAO: UserDAO
+) extends IdentityStore[IO, String, User]:
+  override def get(id: String): OptionT[IO, User] = OptionT(
+    userDAO.fetchUser(id)
+  )
+end IdentityCookieStoreAccessor
