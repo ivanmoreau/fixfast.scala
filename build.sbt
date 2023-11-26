@@ -27,6 +27,8 @@ ThisBuild / scalaVersion := Scala213 // the default Scala
 
 lazy val root = tlCrossRootProject.aggregate(core)
 
+val tsecV = "0.5.0"
+
 lazy val core = crossProject(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("core"))
@@ -41,6 +43,8 @@ lazy val core = crossProject(JVMPlatform)
       "pt.kcry" %%% "blake3" % "3.1.1",
       "com.hubspot.jinjava" % "jinjava" % "2.7.1",
       "org.typelevel" %%% "log4cats-slf4j" % "2.6.0",
+      "io.github.jmcardon" %% "tsec-http4s" % tsecV,
+      "dev.profunktor" %% "redis4cats-effects" % "1.5.2",
       "com.disneystreaming" %% "weaver-cats" % "0.8.3" % Test,
       "org.slf4j" % "slf4j-reload4j" % "2.0.9" % Runtime
     ),
