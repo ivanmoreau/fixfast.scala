@@ -17,8 +17,8 @@ case class UserDAOSkunkImpl(
 ) extends UserDAO:
   private val userQuery: Query[String, User] =
     sql"""
-      SELECT email, password_hash, client_id, provider_id
-      FROM user
+      SELECT email, password_hash, address, client_id, provider_id
+      FROM users
       WHERE email = $varchar
     """.query(User.skunkDecoder)
   end userQuery
@@ -31,7 +31,11 @@ case class UserDAOSkunkImpl(
 
   private val userInsert: Command[User] =
     sql"""
-      INSERT INTO user VALUES ($varchar, $varchar, ${int4.opt}, ${int4.opt})
+      INSERT INTO users
+      (email, password_hash, address, client_id, provider_id)
+      VALUES (${varchar(255)}, ${varchar(255)}, ${varchar(
+        255
+      )}, ${int4.opt}, ${int4.opt})
     """.command.to[User]
   end userInsert
 

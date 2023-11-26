@@ -90,7 +90,8 @@ CREATE TABLE public.users (
     email character varying(255) NOT NULL,
     password_hash character varying(255) NOT NULL,
     client_id integer,
-    provider_id integer
+    provider_id integer,
+    address character varying(255) NOT NULL
 );
 
 
@@ -166,4 +167,5 @@ ALTER TABLE ONLY public.users
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20231114084213');
+    ('20231114084213'),
+    ('20231126053720');

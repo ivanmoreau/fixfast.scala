@@ -22,16 +22,16 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 trait Application:
-  val logger: Logger[IO]
-  val skunkConnectionPool: Resource[IO, Session[IO]]
+  lazy val logger: Logger[IO]
+  lazy val skunkConnectionPool: Resource[IO, Session[IO]]
 
   // DAOs
-  val clientDAO: ClientDAO
-  val providerDAO: ProviderDAO
-  val userDAO: UserDAO
+  lazy val clientDAO: ClientDAO
+  lazy val providerDAO: ProviderDAO
+  lazy val userDAO: UserDAO
 
   // Services
-  val userService: UserService
+  lazy val userService: UserService
   lazy val backend: Backend
 
   val server = NettyServerBuilder[IO]
@@ -46,7 +46,6 @@ trait Application:
 end Application
 
 object Main extends IOApp.Simple:
-
   given logger: Logger[IO] =
     Logger[IO](using Slf4jLogger.getLogger[IO])
 
@@ -76,16 +75,19 @@ object Main extends IOApp.Simple:
     // Dependency Injection
     _ <- skunkConnection.use { pool =>
       logger.info("Building wiring") *>
-        new Application {
-          val logger: Logger[IO] = Main.logger
-          val skunkConnectionPool: Resource[IO, Session[IO]] = pool
-          val clientDAO: ClientDAO = ClientDAOSkunkImpl(pool)
-          val providerDAO: ProviderDAO = ProviderDAOSkunkImpl(pool)
-          val userDAO: UserDAO = UserDAOSkunkImpl(pool)
-          val userService: UserServiceImpl =
+        new Application { self =>
+          lazy val logger: Logger[IO] = Main.logger
+          lazy val skunkConnectionPool: Resource[IO, Session[IO]] = pool
+          lazy val clientDAO: ClientDAO = ClientDAOSkunkImpl(pool)
+          lazy val providerDAO: ProviderDAO = ProviderDAOSkunkImpl(pool)
+          lazy val userDAO: UserDAO = UserDAOSkunkImpl(pool)
+          lazy val userService: UserServiceImpl =
             UserServiceImpl(userDAO, clientDAO, providerDAO)
 
-          override lazy val backend = new Backend {}
+          override lazy val backend = new Backend {
+            lazy val userService: UserService = self.userService
+            lazy val logger: Logger[IO] = self.logger
+          }
         }.run
     }
   yield ()

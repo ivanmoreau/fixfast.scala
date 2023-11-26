@@ -25,9 +25,9 @@
             <form action="../FeedScreen/feed.html">
                 <h1 style="margin-bottom: 2rem;">Crea una cuenta</h1>
                 <span>Llena los campos para registrarte</span>
-                <input type="text" placeholder="Nombre" id="nameInput"/>
-                <input type="email" placeholder="Correo" id="correoInput"/>
-                <input type="password" placeholder="Password" id="passwordInput" />
+                <input type="text" placeholder="Nombre" id="nameInput" required/>
+                <input type="email" placeholder="Correo" id="correoInput" required/>
+                <input type="password" placeholder="Password" id="passwordInput" required/>
                 <h3>Ingresa tu dirección</h3>
                 <div id="map"></div>
                 <button type="submit" id="registro-user">Registrarme</button>
@@ -38,8 +38,8 @@
             <form action="../FeedScreen/feed.html">
                 <h1 style="margin-bottom: 2rem;">Acceder</h1>
                 <span >Llena los campos para ingresar a tu cuenta</span>
-                <input type="email" placeholder="Email" id="emailInput-login"/>
-                <input type="password" placeholder="Password" id="passwordInput-login" />
+                <input type="email" placeholder="Email" id="emailInput-login" required/>
+                <input type="password" placeholder="Password" id="passwordInput-login" required/>
                 <button type="submit" id="login-user">Acceder</button>
             </form>
         </div>

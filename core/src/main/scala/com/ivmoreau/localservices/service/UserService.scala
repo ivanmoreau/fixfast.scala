@@ -9,10 +9,22 @@ trait UserService:
   def newUser(
       email: String,
       passwordHash: String,
+      address: String,
       data: Client | Provider
   ): IO[Unit]
-  def newClient(email: String, passwordHash: String, name: String): IO[Unit]
-  def newProvider(email: String, passwordHash: String, name: String): IO[Unit]
+  def newClient(
+      email: String,
+      passwordHash: String,
+      name: String,
+      address: String
+  ): IO[Unit]
+  def newProvider(
+      email: String,
+      passwordHash: String,
+      name: String,
+      address: String
+  ): IO[Unit]
+  def fetchUser(email: String): IO[Option[User]]
 end UserService
 
 case class UserServiceImpl(
@@ -32,38 +44,44 @@ case class UserServiceImpl(
   override def newUser(
       email: String,
       passwordHash: String,
+      address: String,
       data: Client | Provider
   ): IO[Unit] = data match
     case client: Client =>
       for
         id <- clientDAO.insertClient(client.name)
         _ <- userDAO
-          .insertUser(User(email, passwordHash, Some(id), None))
+          .insertUser(User(email, passwordHash, address, Some(id), None))
       yield ()
     case provider: Provider =>
       for
         id <- providerDAO.insertProvider(provider.name)
         _ <- userDAO
-          .insertUser(User(email, passwordHash, None, Some(id)))
+          .insertUser(User(email, passwordHash, address, None, Some(id)))
       yield ()
   end newUser
 
   override def newClient(
       email: String,
       passwordHash: String,
-      name: String
+      name: String,
+      address: String
   ): IO[Unit] =
     val client = Client(-1, name)
-    newUser(email, passwordHash, client)
+    newUser(email, passwordHash, address, client)
   end newClient
 
   override def newProvider(
       email: String,
       passwordHash: String,
-      name: String
+      name: String,
+      address: String
   ): IO[Unit] =
     val provider = Provider(-1, name)
-    newUser(email, passwordHash, provider)
+    newUser(email, passwordHash, address, provider)
   end newProvider
+
+  override def fetchUser(email: String): IO[Option[User]] =
+    userDAO.fetchUser(email)
 
 end UserServiceImpl
