@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+    <style>
+        #map { width: 100%; height:30% }
+        .mapboxgl-ctrl-geocoder--icon{
+            visibility: collapse;
+        }
+        .mapboxgl-ctrl-geocoder--button{
+            visibility: collapse;
+        }
+    </style>
+    <title>FIXFAST</title>
+</head>
+<body id="inicia-sesion">
+<!-- REGISTRARSE FORM -->
+    <div class="container" id="container">
+        <div class="form-container sign-up-container">
+            <form action="../FeedScreen/feed.html">
+                <h1 style="margin-bottom: 2rem;">Crea una cuenta</h1>
+                <span>Llena los campos para registrarte</span>
+                <input type="text" placeholder="Nombre" id="nameInput"/>
+                <input type="email" placeholder="Correo" id="correoInput"/>
+                <input type="password" placeholder="Password" id="passwordInput" />
+                <h3>Ingresa tu dirección</h3>
+                <div id="map"></div>
+                <button type="submit" id="registro-user">Registrarme</button>
+            </form>
+        </div>
+        <!-- LOGIN FORM -->
+        <div class="form-container sign-in-container">
+            <form action="../FeedScreen/feed.html">
+                <h1 style="margin-bottom: 2rem;">Acceder</h1>
+                <span >Llena los campos para ingresar a tu cuenta</span>
+                <input type="email" placeholder="Email" id="emailInput-login"/>
+                <input type="password" placeholder="Password" id="passwordInput-login" />
+                <button type="submit" id="login-user">Acceder</button>
+            </form>
+        </div>
+        <div class="overlay-container">
+            <div class="overlay">
+                <div class="overlay-panel overlay-left">
+                    <h1>Soluciones locales y rapidas</h1>
+                    <p style="font-size: 1.5rem; font-weight: bolder;">¿Ya tienes una cuenta?</p>
+                    <button class="ghost"  id="signIn">Acceder a cuenta</button>
+                </div>
+                <div class="overlay-panel overlay-right">
+                    <h1>!Bienvenido otra vez!</h1>
+                    <p style="font-size: 1.5rem; font-weight: bolder;">¿Aún no tienes una cuenta? ¡Registrate ahora!</p>
+                    <button class="ghost" id="signUp">Registrarme</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibmFuY3ltYXllayIsImEiOiJjbGh0dmdlamEyZ3FyM2RudTA5N2p6cjNwIn0.rI0dhokmQXjJhDpNC7DMNw';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [-98.198149, 19.04372],
+            zoom: 13
+        });
+  
+        const geocoder = new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl
+        });
+  
+        map.addControl(geocoder, 'top-left');
+  
+        map.on('load', () => {
+            // Escuche el evento `geocoder.input` que se activa 
+            //cuando un usuario realiza una selección
+            geocoder.on('result', (event) => {
+                localStorage.setItem("direccion",event.result.place_name);
+                localStorage.setItem("latitude",event.result.center[0]);
+                localStorage.setItem("longitude",event.result.center[1]);
+            });
+        });
+        
+    </script>
+    <script src="../../../assets/js/script.js"></script>
+</body>
+</html>
