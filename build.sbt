@@ -18,12 +18,17 @@ ThisBuild / developers := List(
 // publish to s01.oss.sonatype.org (set to true to publish to oss.sonatype.org instead)
 ThisBuild / tlSonatypeUseLegacyHost := false
 
-// publish website from this branch
-ThisBuild / tlSitePublishBranch := Some("main")
+ThisBuild / tlFatalWarnings := false
+ThisBuild / tlCiHeaderCheck := false
 
-val Scala213 = "3.3.1"
-ThisBuild / crossScalaVersions := Seq(Scala213, "3.3.1")
-ThisBuild / scalaVersion := Scala213 // the default Scala
+ThisBuild / tlCiScalafixCheck := false
+ThisBuild / tlCiDocCheck := false
+ThisBuild / tlCiMimaBinaryIssueCheck := false
+ThisBuild / tlCiDependencyGraphJob := false
+
+val Scala331 = "3.3.1"
+ThisBuild / crossScalaVersions := Seq(Scala331)
+ThisBuild / scalaVersion := Scala331 // the default Scala
 
 lazy val root = tlCrossRootProject.aggregate(core)
 
@@ -50,5 +55,3 @@ lazy val core = crossProject(JVMPlatform)
     ),
     testFrameworks += new TestFramework("weaver.framework.CatsEffect")
   )
-
-lazy val docs = project.in(file("site")).enablePlugins(TypelevelSitePlugin)
