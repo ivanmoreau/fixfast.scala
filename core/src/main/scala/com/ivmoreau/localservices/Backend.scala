@@ -59,6 +59,19 @@ trait Backend:
               )
           }
         }
+      case GET -> Root / "signup-fixer" =>
+        IO {
+          Response[IO](Ok).withEntity {
+            Template(
+              "templates/screens/SignUpWorkerScreen/registrar_worker.html"
+            )
+              .withContext(
+                Map(
+                  "wenas" -> "Wenas, mi estimado, bienvenido a la página de registro :3 UwU"
+                )
+              )
+          }
+        }
       case req @ POST -> Root / "login" =>
         req.decode[UrlForm] { form =>
           (for {
@@ -126,6 +139,53 @@ trait Backend:
               case None => IO.unit
             }
             _ <- userService.newClient(email, hashedPassword, name, address)
+            token <- Auth.authenticator
+              .create(email)
+              .map(
+                Auth.authenticator.embed(
+                  Response[IO](SeeOther)
+                    .putHeaders(Location(Uri.unsafeFromString("/feed"))),
+                  _
+                )
+              )
+          } yield token).handleErrorWith { case e: Exception =>
+            logger.error(e)(s"Error creating user: $e") *> BadRequest()
+          }
+        }
+      case req @ POST -> Root / "signup-fixer" =>
+        req.decode[UrlForm] { form =>
+          println(form)
+
+          (for {
+            name <- IO.fromOption(form.getFirst("name"))(
+              new Exception("Username not found")
+            )
+            password <- IO.fromOption(form.getFirst("password"))(
+              new Exception("Password not found")
+            )
+            email <- IO.fromOption(form.getFirst("email"))(
+              new Exception("Email not found")
+            )
+            category <- IO.fromOption(form.getFirst("category"))(
+              new Exception("Category not found")
+            )
+            hashedPassword <- IO {
+              Blake3.hex(password, 64)
+            }
+            address <- IO
+              .fromOption(form.getFirst("address"))(
+                new Exception("Adress not found")
+              )
+              .map { str =>
+                if str.isEmpty then "{ lat: 0, lng: 0 }"
+                else str
+              }
+            _ <- userService.fetchUser(email).flatMap {
+              case Some(_) =>
+                IO.raiseError(new Exception("User already exists"))
+              case None => IO.unit
+            }
+            _ <- userService.newProvider(email, hashedPassword, name, address)
             token <- Auth.authenticator
               .create(email)
               .map(

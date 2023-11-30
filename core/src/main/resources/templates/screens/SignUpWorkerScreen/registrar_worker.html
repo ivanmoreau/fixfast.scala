@@ -32,13 +32,14 @@
         </div>
     <!-- REGISTRARCE FORM -->
         <div class="form-container sign-in-container">
-            <form action="../WorkerProfileScreen/Private/private-worker-profile.html" method="GET">
+            <!-- ../WorkerProfileScreen/Private/private-worker-profile.html -->
+            <form action="/signup-fixer" method="POST">
                 <h1 style="margin-bottom: 2rem;">Crea una cuenta</h1>
                 <span>Llena los campos para registrarte</span>
-                <input type="text" placeholder="Nombre" id="nameInput"/>
-                <input type="email" placeholder="Correo" id="correoInput"/>
-                <input type="password" placeholder="Password" id="passwordInput" />
-                <select  id="select-categoria" class="btn btn-secondary dropdown-toggle" style=" width:20rem;color:black; background-color: rgb(255, 185, 7); margin-bottom: .5rem; margin-top: .5rem;" class="select-categoria">
+                <input type="text" placeholder="Nombre" id="nameInput" name="name"/>
+                <input type="email" placeholder="Correo" id="correoInput" name="mail"/>
+                <input type="password" placeholder="Password" id="passwordInput" name="password"/>
+                <select  id="select-categoria" class="btn btn-secondary dropdown-toggle" style=" width:20rem;color:black; background-color: rgb(255, 185, 7); margin-bottom: .5rem; margin-top: .5rem;" class="select-categoria" name="category">
                     <option value="Limpieza">Limpieza</option>
                     <option value="Carpinteria">Carpinteria</option>
                     <option value="Plomeria">Plomeria</option>
