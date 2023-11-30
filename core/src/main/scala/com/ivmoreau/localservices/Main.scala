@@ -31,14 +31,19 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import tsec.cipher.symmetric.jca.{AES128GCM, SecretKey}
 import dev.profunktor.redis4cats.effect.Log.Stdout.given
 import tsec.authentication.{
+  AugmentedJWT,
   AuthEncryptedCookie,
+  Authenticator,
   BackingStore,
   EncryptedCookieAuthenticator,
+  IdentityStore,
+  JWTAuthenticator,
   SecuredRequestHandler,
   TSecCookieSettings
 }
 import tsec.cipher.symmetric.AADEncryptor
 import tsec.common.SecureRandomId
+import tsec.mac.jca.{HMACSHA256, MacSigningKey}
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -56,6 +61,12 @@ trait Application:
   lazy val userService: UserService
   lazy val backend: Backend
 
+  // Something
+  lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+    HMACSHA256,
+    String
+  ]]
+
   val server = NettyServerBuilder[IO]
     .bindLocal(8080)
     .withNioTransport
@@ -70,22 +81,6 @@ end Application
 object Main extends IOApp.Simple:
   given logger: Logger[IO] =
     Logger[IO](using Slf4jLogger.getLogger[IO])
-
-  def configureRedisCookiesClient(
-      host: String
-  ): Resource[IO, RedisCommands[IO, UUID, AuthEncryptedCookie[
-    AES128GCM,
-    Int
-  ]]] =
-    for {
-      uri <- Resource.eval(RedisURI.make[IO](host))
-      cli <- RedisClient[IO].fromUri(uri)
-      cmd <- Redis[IO]
-        .fromClient[UUID, AuthEncryptedCookie[AES128GCM, Int]](
-          cli,
-          ???
-        )
-    } yield cmd
 
   def run: IO[Unit] = for
     _ <- logger.info("Starting LocalServices")
@@ -123,45 +118,42 @@ object Main extends IOApp.Simple:
           lazy val userService: UserServiceImpl =
             UserServiceImpl(userDAO, clientDAO, providerDAO)
 
-          lazy val Auth = {
-            implicit val encryptor: AADEncryptor[IO, AES128GCM, SecretKey] =
-              AES128GCM.genEncryptor[IO]
-            implicit val gcmstrategy = AES128GCM.defaultIvStrategy[IO]
+          lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+            HMACSHA256,
+            String
+          ]] = {
+            val userStore: IdentityStore[IO, String, User] =
+              IdentityCookieStoreAccessor(userDAO)
 
-            val key: SecretKey[AES128GCM] = AES128GCM.generateKey[Id]
+            val signingKey: MacSigningKey[HMACSHA256] =
+              HMACSHA256.generateKey[Id]
 
-            val settings: TSecCookieSettings = TSecCookieSettings(
-              cookieName = "tsec-auth",
-              secure = false,
-              expiryDuration = 10.minutes, // Absolute expiration time
-              maxIdle =
-                None // Rolling window expiration. Set this to a FiniteDuration if you intend to have one
-            )
+            val jwtStatefulAuth
+                : JWTAuthenticator[IO, String, User, HMACSHA256] =
+              JWTAuthenticator.unbacked.inCookie[IO, String, User, HMACSHA256](
+                settings = TSecCookieSettings(
+                  secure = false,
+                  httpOnly = true,
+                  expiryDuration = 24.hours, // Absolute expiration time
+                  maxIdle = Some(60.minutes)
+                ),
+                identityStore = userStore,
+                signingKey = signingKey
+              )
 
-            val s: BackingStore[
-              IO,
-              UUID,
-              AuthEncryptedCookie[AES128GCM, String]
-            ] = SessionCookieStorageDAORedisImpl(
-              configureRedisCookiesClient("localhost"),
-              s => SecureRandomId.coerce(s.id.toString)
-            )
-
-            val authWithBackingStore = // Instantiate a stateful authenticator
-              EncryptedCookieAuthenticator
-                .withBackingStore[IO, String, User, AES128GCM](
-                  settings,
-                  s,
-                  IdentityCookieStoreAccessor(userDAO),
-                  key
-                )
-
-              SecuredRequestHandler(authWithBackingStore)
+            SecuredRequestHandler[IO, String, User, AugmentedJWT[
+              HMACSHA256,
+              String
+            ]](jwtStatefulAuth)
           }
 
           override lazy val backend = new Backend {
             lazy val userService: UserService = self.userService
             lazy val logger: Logger[IO] = self.logger
+            lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+              HMACSHA256,
+              String
+            ]] = self.Auth
           }
         }.run
     }

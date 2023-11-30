@@ -53,4 +53,5 @@ class IdentityCookieStoreAccessor(
   override def get(id: String): OptionT[IO, User] = OptionT(
     userDAO.fetchUser(id)
   )
+  end get
 end IdentityCookieStoreAccessor

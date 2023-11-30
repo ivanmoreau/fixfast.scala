@@ -25,6 +25,7 @@ trait UserService:
       address: String
   ): IO[Unit]
   def fetchUser(email: String): IO[Option[User]]
+  def fetchName(email: String): IO[Option[String]]
 end UserService
 
 case class UserServiceImpl(
@@ -83,5 +84,24 @@ case class UserServiceImpl(
 
   override def fetchUser(email: String): IO[Option[User]] =
     userDAO.fetchUser(email)
+
+  override def fetchName(email: String): IO[Option[String]] =
+    userDAO
+      .fetchUser(email)
+      .flatMap {
+        case Some(user) =>
+          user.clientId match
+            case Some(id) =>
+              clientDAO.fetchClient(id).map {
+                case Some(client) => Some(client.name)
+                case None         => None
+              }
+            case None =>
+              providerDAO.fetchProvider(user.providerId.get).map {
+                case Some(provider) => Some(provider.name)
+                case None           => None
+              }
+        case None => IO.pure(None)
+      }
 
 end UserServiceImpl

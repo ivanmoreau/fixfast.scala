@@ -10,7 +10,7 @@ case class Provider(
 
 object Provider:
   val skunkDecoder: Decoder[Provider] =
-    (int4 ~ varchar).to[Provider]
+    (int4 ~ varchar(255)).to[Provider]
   val skunkEncoder: Encoder[Provider] =
-    (int4 ~ varchar).values.to[Provider]
+    (int4 ~ varchar(255)).values.to[Provider]
 end Provider

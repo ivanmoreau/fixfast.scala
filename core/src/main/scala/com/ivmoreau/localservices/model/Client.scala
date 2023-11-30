@@ -10,7 +10,7 @@ case class Client(
 
 object Client:
   val skunkDecoder: Decoder[Client] =
-    (int4 ~ varchar).to[Client]
+    (int4 ~ varchar(255)).to[Client]
   val skunkEncoder: Encoder[Client] =
-    (int4 ~ varchar).values.to[Client]
+    (int4 ~ varchar(255)).values.to[Client]
 end Client
