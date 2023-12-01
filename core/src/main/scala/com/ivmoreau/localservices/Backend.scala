@@ -236,7 +236,14 @@ trait Backend:
 
   val miscRouter: HttpRoutes[IO] =
     Auth.liftService(TSecAuthService {
-      case req @ GET -> Root / "feed" asAuthed user =>
+      case req @ GET -> Root / "feed" asAuthed user
+          if user.providerId.isDefined =>
+        IO {
+          Response[IO](SeeOther)
+            .putHeaders(Location(Uri.unsafeFromString("/provider-profile")))
+        }
+      case req @ GET -> Root / "feed" asAuthed user
+          if user.clientId.isDefined =>
         (for {
           name <- userService.fetchName(user.email)
           randomProcider <- userService.fetchRandomProvider()
@@ -255,13 +262,33 @@ trait Backend:
             }
           }
         } yield res)
-      case req @ GET -> Root / "user-profile" asAuthed user =>
+      case req @ GET -> Root / "user-profile" asAuthed user
+          if user.clientId.isDefined =>
         (for {
           name <- userService.fetchName(user.email)
           res <- IO {
             Response[IO](Ok).withEntity {
               Template(
                 "templates/screens/UserProfileScreen/user-profile.html"
+              )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email
+                  )
+                )
+            }
+          }
+        } yield res)
+      case req @ GET -> Root / "provider-profile" asAuthed user
+          if user.providerId.isDefined =>
+        (for {
+          name <- userService.fetchName(user.email)
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/WorkerProfileScreen/Private/private-worker-profile.html"
               )
                 .withContext(
                   Map(

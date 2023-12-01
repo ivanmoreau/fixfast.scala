@@ -62,7 +62,7 @@
             <button id="user-nav-btns">
                 <a href="/user-profile">
                     <div id="user-circle">
-                        <img src="../../../assets/images/no_profile_picture.png" alt="profile_pic">
+                        <img src="/profile-images/{{email}}" alt="profile_pic">
                     </div>
                 </a>
                 <div>
@@ -78,7 +78,7 @@
         </div>
         <div id="side-nav-profile">
             <div id="profile-pic">
-                <img src="../../../assets/images/no_profile_picture.png" alt="">
+                <img src="/profile-images/{{email}}" alt="">
             </div>
             <h3 id="name">{% if showRandomProviderInfo %}<a href="../WorkerProfileScreen/Public/public-worker-profile.html">{{ randomProviderName }}</a>{% else %}{{ randomProviderName }}{% endif %}</h3>
             {% if showRandomProviderInfo %}
