@@ -9,7 +9,7 @@ import com.ivmoreau.localservices.model.Provider
 
 trait ProviderDAO:
   def fetchProvider(providerId: Int): IO[Option[Provider]]
-  def insertProvider(name: String): IO[Int]
+  def insertProvider(name: String, category: String): IO[Int]
   def fetchRandomProvider(): IO[Provider]
   def getCategoryForExistingProvider(providerId: Int): IO[String]
   def getAllByQuery(category: String, query: String): IO[List[Provider]]
@@ -49,17 +49,17 @@ case class ProviderDAOSkunkImpl(
     )
   end fetchProvider
 
-  private val insertproviderQuery: Query[String, Int] =
+  private val insertproviderQuery: Query[(String, String), Int] =
     sql"""
       INSERT INTO provider (name, category)
-      VALUES ($varchar)
+      VALUES ($varchar, $varchar)
       RETURNING id
      """.query(int4)
   end insertproviderQuery
 
-  override def insertProvider(name: String): IO[Int] =
+  override def insertProvider(name: String, category: String): IO[Int] =
     skunkConnection.use(
-      _.execute(insertproviderQuery)(name).flatMap { list =>
+      _.execute(insertproviderQuery)(name, category).flatMap { list =>
         IO {
           list.head
         }

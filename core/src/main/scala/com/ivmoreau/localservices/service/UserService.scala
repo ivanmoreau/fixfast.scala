@@ -77,7 +77,7 @@ case class UserServiceImpl(
       yield ()
     case provider: Provider =>
       for
-        id <- providerDAO.insertProvider(provider.name)
+        id <- providerDAO.insertProvider(provider.name, provider.category)
         _ <- userDAO
           .insertUser(User(email, passwordHash, address, None, Some(id)))
       yield ()
