@@ -22,24 +22,25 @@
 <!-- REGISTRARSE FORM -->
     <div class="container" id="container">
         <div class="form-container sign-up-container">
-            <form action="../FeedScreen/feed.html">
+            <form action="/signup" method="POST">
                 <h1 style="margin-bottom: 2rem;">Crea una cuenta</h1>
                 <span>Llena los campos para registrarte</span>
-                <input type="text" placeholder="Nombre" id="nameInput"/>
-                <input type="email" placeholder="Correo" id="correoInput"/>
-                <input type="password" placeholder="Password" id="passwordInput" />
+                <input type="text" placeholder="Nombre" id="nameInput" required name="name"/>
+                <input type="email" placeholder="Correo" id="correoInput" required name="email"/>
+                <input type="password" placeholder="Password" id="passwordInput" required name="password"/>
                 <h3>Ingresa tu dirección</h3>
                 <div id="map"></div>
+                <input type="hidden" id="direccionInput" name="address" required/>
                 <button type="submit" id="registro-user">Registrarme</button>
             </form>
         </div>
         <!-- LOGIN FORM -->
         <div class="form-container sign-in-container">
-            <form action="../FeedScreen/feed.html">
+            <form action="/login" method="POST">
                 <h1 style="margin-bottom: 2rem;">Acceder</h1>
                 <span >Llena los campos para ingresar a tu cuenta</span>
-                <input type="email" placeholder="Email" id="emailInput-login"/>
-                <input type="password" placeholder="Password" id="passwordInput-login" />
+                <input type="email" placeholder="Email" id="emailInput-login" required name="email"/>
+                <input type="password" placeholder="Password" id="passwordInput-login" required name="password"/>
                 <button type="submit" id="login-user">Acceder</button>
             </form>
         </div>
@@ -83,6 +84,14 @@
                 localStorage.setItem("direccion",event.result.place_name);
                 localStorage.setItem("latitude",event.result.center[0]);
                 localStorage.setItem("longitude",event.result.center[1]);
+            });
+        });
+
+        // save the coordinates of the selected result to #direccionInput
+        geocoder.on('result', function(ev) {
+            document.getElementById('direccionInput').value = JSON.stringify({
+                lng: ev.result.center[0],
+                lat: ev.result.center[1]
             });
         });
         

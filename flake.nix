@@ -23,6 +23,8 @@
           };
           commands = [
             {package = pkgs.dbmate;}
+            {package = pkgs.vultr-cli;}
+            {package = pkgs.kubectl;}
           ];
         };
       }

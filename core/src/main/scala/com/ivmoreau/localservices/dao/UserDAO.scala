@@ -1,15 +1,17 @@
 package com.ivmoreau.localservices.dao
 
+import cats.data.OptionT
 import cats.effect.{IO, Resource}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-
 import com.ivmoreau.localservices.model.User
+import tsec.authentication.IdentityStore
 
 trait UserDAO:
   def fetchUser(email: String): IO[Option[User]]
   def insertUser(user: User): IO[Unit]
+  def fetchUserByProviderId(providerId: Int): IO[Option[User]]
 end UserDAO
 
 case class UserDAOSkunkImpl(
@@ -17,8 +19,8 @@ case class UserDAOSkunkImpl(
 ) extends UserDAO:
   private val userQuery: Query[String, User] =
     sql"""
-      SELECT email, password_hash, client_id, provider_id
-      FROM user
+      SELECT email, password_hash, address, client_id, provider_id
+      FROM users
       WHERE email = $varchar
     """.query(User.skunkDecoder)
   end userQuery
@@ -31,7 +33,11 @@ case class UserDAOSkunkImpl(
 
   private val userInsert: Command[User] =
     sql"""
-      INSERT INTO user VALUES ($varchar, $varchar, ${int4.opt}, ${int4.opt})
+      INSERT INTO users
+      (email, password_hash, address, client_id, provider_id)
+      VALUES (${varchar(255)}, ${varchar(255)}, ${varchar(
+        255
+      )}, ${int4.opt}, ${int4.opt})
     """.command.to[User]
   end userInsert
 
@@ -40,4 +46,27 @@ case class UserDAOSkunkImpl(
       _.prepare(userInsert).flatMap(_.execute(user)).void
     )
   end insertUser
+
+  private val userByProviderIdQuery: Query[Int, User] =
+    sql"""
+        SELECT email, password_hash, address, client_id, provider_id
+        FROM users
+        WHERE provider_id = $int4
+        """.query(User.skunkDecoder)
+  end userByProviderIdQuery
+
+  override def fetchUserByProviderId(providerId: Int): IO[Option[User]] =
+    skunkConnection.use(
+      _.execute(userByProviderIdQuery)(providerId).map(_.headOption)
+    )
+  end fetchUserByProviderId
 end UserDAOSkunkImpl
+
+class IdentityCookieStoreAccessor(
+    userDAO: UserDAO
+) extends IdentityStore[IO, String, User]:
+  override def get(id: String): OptionT[IO, User] = OptionT(
+    userDAO.fetchUser(id)
+  )
+  end get
+end IdentityCookieStoreAccessor

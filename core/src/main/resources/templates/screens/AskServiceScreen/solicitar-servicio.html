@@ -20,16 +20,18 @@
 </head>
 <body id="inicia-sesion">
     <div class="form-container sign-in-container">
-        <form action="">
+        <form action="/request-fixer/{{ providerId }}" method="POST">
             <h1 style="margin-bottom: 2rem;">Solicita un servicio</h1>
             <h3>Estas solicitando un servicio de el Fixer: </h3>
+            <h3 id="fixer-name">{{providerName}}</h3>
             <span>Llena los campos</span>
             <h3>Ingresa una breve descripcion el servicio que solicitas</h3>
-            <input type="text" placeholder="Descripcion" id="descripcionInput"/>
+            <input type="text" placeholder="Descripcion" id="descripcionInput" required name="description"/>
             <h3>Ingresa la fecha en la que quieres el servicio</h3>
-            <input type="date" placeholder="26/05/2023" id="fechaInput"/>
+            <input type="date" placeholder="26/05/2023" id="fechaInput" required name="date"/>
             <h3>Ingresa la dirección a la que quieres mandar el servicio</h3>
             <div id="map"></div>
+            <input type="hidden" id="direccionInput" name="address" required name="address"/>
             <button type="submit" onclick="solicitarButtonClick()"  id="solicitar-servicio">SOLICITAR</button>
         </form>
     </div>
@@ -65,6 +67,14 @@
             localStorage.setItem("direccion",event.result.place_name);
             localStorage.setItem("latitude",event.result.center[0]);
             localStorage.setItem("longitude",event.result.center[1]);
+            });
+        });
+
+        // save the coordinates of the selected result to #direccionInput
+        geocoder.on('result', function(ev) {
+            document.getElementById('direccionInput').value = JSON.stringify({
+                lng: ev.result.center[0],
+                lat: ev.result.center[1]
             });
         });
     </script>

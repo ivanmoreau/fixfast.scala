@@ -32,7 +32,7 @@
                     </ul>
                 </div>
             </div>
-            <div id="nav-searchbar">
+            <form id="nav-searchbar" action="/find" method="GET">
                 <div id="categorias">
                     <div class="dropdown">
                         <button
@@ -54,20 +54,20 @@
                 </div>
                 <div id="searchbar">
                     <input type="text" placeholder="Busca un servicio" />
-                    <a href="../Profiles/profiles.html">
+                    <button type="submit" style="border: none;background: none;}">
                         <img src="../../../assets/images/search_icon.png" alt="Search Icon"/>
-                    </a>
+                    </button>
                 </div>
-            </div> 
+            </form>
             <button id="user-nav-btns">
-                <a href="../UserProfileScreen/user-profile.html">
+                <a href="/user-profile">
                     <div id="user-circle">
-                        <img src="../../../assets/images/no_profile_picture.png" alt="profile_pic">
+                        <img src="/profile-images/{{email}}" alt="profile_pic">
                     </div>
                 </a>
                 <div>
-                    <h3 id="name-user"></h3>
-                    <h3 id="correo-user"></h3>
+                    <h3 id="name-user">{{ name }}</h3>
+                    <h3 id="correo-user">{{ email }}</h3>
                 </div>
             </button>
         </nav>
@@ -78,23 +78,24 @@
         </div>
         <div id="side-nav-profile">
             <div id="profile-pic">
-                <img src="../../../assets/images/no_profile_picture.png" alt="">
+                <img src="/profile-images/{{email}}" alt="">
             </div>
-            <h3 id="name"><a href="../WorkerProfileScreen/Public/public-worker-profile.html">Enrique Juarez Perez</a></h3>
+            <h3 id="name">{% if showRandomProviderInfo %}<a href="../WorkerProfileScreen/Public/public-worker-profile.html">{{ randomProviderName }}</a>{% else %}{{ randomProviderName }}{% endif %}</h3>
+            {% if showRandomProviderInfo %}
             <button>
                 <h3>Seguir</h3>
                 <img src="../../../assets/images/plus_icon.png" alt="">
             </button>
             <hr>
             <div>
-                <a href="../AskServiceScreen/solicitar-servicio.html">
+                <a href="/request-fixer/{{ randomProviderCode }}">
                     <div id="side-nav-links">
                         <h3>Solicitar servicio</h3>
                         <img src="../../../assets/images/right_arrow_icon.png" alt="">
                     </div>
                 </a>
                 <hr>
-                <a href="">
+                <a href="/provider-comments/{{ randomProviderCode }}">
                     <div id="side-nav-links">
                         <h3>Reseñas</h3>
                         <img src="../../../assets/images/right_arrow_icon.png" alt="">
@@ -102,6 +103,7 @@
                 </a>
                 <hr>
             </div>
+            {% endif %}
         </div>
     </div>
     <footer>

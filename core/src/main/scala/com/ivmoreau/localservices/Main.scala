@@ -8,31 +8,62 @@
 
 package com.ivmoreau.localservices
 
+import cats.Id
+
 import scala.util.Try
 import cats.implicits.*
 import cats.effect.*
-import com.ivmoreau.localservices.dao.*
+import com.ivmoreau.localservices.dao.{IdentityCookieStoreAccessor, *}
+import com.ivmoreau.localservices.model.User
 import com.ivmoreau.localservices.service.*
 import skunk.*
 import natchez.Trace.Implicits.noop
 import org.http4s.*
+import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.netty.server.NettyServerBuilder
+import org.http4s.netty.client.NettyClientBuilder
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import tsec.cipher.symmetric.jca.{AES128GCM, SecretKey}
+import tsec.authentication.{
+  AugmentedJWT,
+  AuthEncryptedCookie,
+  Authenticator,
+  BackingStore,
+  EncryptedCookieAuthenticator,
+  IdentityStore,
+  JWTAuthenticator,
+  SecuredRequestHandler,
+  TSecCookieSettings
+}
+import tsec.cipher.symmetric.AADEncryptor
+import tsec.common.SecureRandomId
+import tsec.mac.jca.{HMACSHA256, MacSigningKey}
+
+import java.util.UUID
+import scala.concurrent.duration.DurationInt
 
 trait Application:
-  val logger: Logger[IO]
-  val skunkConnectionPool: Resource[IO, Session[IO]]
+  lazy val logger: Logger[IO]
+  lazy val skunkConnectionPool: Resource[IO, Session[IO]]
 
   // DAOs
-  val clientDAO: ClientDAO
-  val providerDAO: ProviderDAO
-  val userDAO: UserDAO
+  lazy val clientDAO: ClientDAO
+  lazy val providerDAO: ProviderDAO
+  lazy val userDAO: UserDAO
 
   // Services
-  val userService: UserService
+  lazy val userService: UserService
   lazy val backend: Backend
+  lazy val client: Client[IO]
+  lazy val openAIService: OpenAIService
+
+  // Something
+  lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+    HMACSHA256,
+    String
+  ]]
 
   val server = NettyServerBuilder[IO]
     .bindLocal(8080)
@@ -46,7 +77,6 @@ trait Application:
 end Application
 
 object Main extends IOApp.Simple:
-
   given logger: Logger[IO] =
     Logger[IO](using Slf4jLogger.getLogger[IO])
 
@@ -61,6 +91,10 @@ object Main extends IOApp.Simple:
       _.flatMap(max => Try(max.toInt).toOption).getOrElse(5)
     }
     dbHost <- IO.envForIO.get("DATABASE_HOST").map(_.getOrElse("localhost"))
+    redisHost <- IO.envForIO.get("REDIS_HOST")
+    openAIKey <- IO.envForIO
+      .get("OPENAI_KEY")
+      .map(_.map(OpenAIService.openAIKey))
 
     // Setup
 
@@ -73,19 +107,70 @@ object Main extends IOApp.Simple:
       max = maxConnections
     )
 
-    // Dependency Injection
-    _ <- skunkConnection.use { pool =>
-      logger.info("Building wiring") *>
-        new Application {
-          val logger: Logger[IO] = Main.logger
-          val skunkConnectionPool: Resource[IO, Session[IO]] = pool
-          val clientDAO: ClientDAO = ClientDAOSkunkImpl(pool)
-          val providerDAO: ProviderDAO = ProviderDAOSkunkImpl(pool)
-          val userDAO: UserDAO = UserDAOSkunkImpl(pool)
-          val userService: UserServiceImpl =
-            UserServiceImpl(userDAO, clientDAO, providerDAO)
+    clientNetty = NettyClientBuilder[IO]
+      .withMaxConnectionsPerKey(10)
+      .withIdleTimeout(10.seconds)
+      .withNioTransport
+      .resource
 
-          override lazy val backend = new Backend {}
+    // Dependency Injection
+    _ <- skunkConnection.both(clientNetty).use { case (pool, clientNetty) =>
+      logger.info("Building wiring") *>
+        new Application { self =>
+          lazy val logger: Logger[IO] = Main.logger
+          lazy val skunkConnectionPool: Resource[IO, Session[IO]] = pool
+          lazy val clientDAO: ClientDAO = ClientDAOSkunkImpl(pool)
+          lazy val providerDAO: ProviderDAO = ProviderDAOSkunkImpl(pool)
+          lazy val userDAO: UserDAO = UserDAOSkunkImpl(pool)
+          lazy val requestDAO: RequestDAO = RequestDAOSkunkImpl(pool)
+          lazy val userService: UserServiceImpl =
+            UserServiceImpl(userDAO, clientDAO, providerDAO, requestDAO)
+
+          lazy val client: Client[IO] = clientNetty
+          lazy val openAIService: OpenAIService = openAIKey match {
+            case Some(value) => OpenAIServiceImpl(client, value)
+            case None        => OpenAIServiceImplBogus
+          }
+
+          lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+            HMACSHA256,
+            String
+          ]] = {
+            val userStore: IdentityStore[IO, String, User] =
+              IdentityCookieStoreAccessor(userDAO)
+
+            val signingKey: MacSigningKey[HMACSHA256] =
+              HMACSHA256.generateKey[Id]
+
+            val jwtStatefulAuth
+                : JWTAuthenticator[IO, String, User, HMACSHA256] =
+              JWTAuthenticator.unbacked.inCookie[IO, String, User, HMACSHA256](
+                settings = TSecCookieSettings(
+                  secure = false,
+                  httpOnly = true,
+                  expiryDuration = 24.hours, // Absolute expiration time
+                  maxIdle = Some(60.minutes)
+                ),
+                identityStore = userStore,
+                signingKey = signingKey
+              )
+
+            SecuredRequestHandler[IO, String, User, AugmentedJWT[
+              HMACSHA256,
+              String
+            ]](jwtStatefulAuth)
+          }
+
+          override lazy val backend = new Backend {
+            lazy val userService: UserService = self.userService
+            lazy val logger: Logger[IO] = self.logger
+            lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
+              HMACSHA256,
+              String
+            ]] = self.Auth
+            lazy val client: Client[IO] = self.client
+            lazy val openAIService: OpenAIService = self.openAIService
+          }
         }.run
     }
   yield ()
