@@ -16,11 +16,6 @@ import cats.effect.*
 import com.ivmoreau.localservices.dao.{IdentityCookieStoreAccessor, *}
 import com.ivmoreau.localservices.model.User
 import com.ivmoreau.localservices.service.*
-import dev.profunktor.redis4cats.codecs.Codecs
-import dev.profunktor.redis4cats.codecs.splits.SplitEpi
-import dev.profunktor.redis4cats.connection.{RedisClient, RedisURI}
-import dev.profunktor.redis4cats.data.RedisCodec
-import dev.profunktor.redis4cats.{Redis, RedisCommands}
 import skunk.*
 import natchez.Trace.Implicits.noop
 import org.http4s.*
@@ -29,7 +24,6 @@ import org.http4s.netty.server.NettyServerBuilder
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import tsec.cipher.symmetric.jca.{AES128GCM, SecretKey}
-import dev.profunktor.redis4cats.effect.Log.Stdout.given
 import tsec.authentication.{
   AugmentedJWT,
   AuthEncryptedCookie,

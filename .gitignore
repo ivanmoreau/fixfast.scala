@@ -22,8 +22,10 @@ metals.sbt
 .vscode
 .direnv/
 
+.DS_Store
 
 # npm
 node_modules/
 
 .env
+profile-images/

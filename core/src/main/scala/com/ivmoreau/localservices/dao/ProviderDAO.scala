@@ -10,6 +10,7 @@ import com.ivmoreau.localservices.model.Provider
 trait ProviderDAO:
   def fetchProvider(providerId: Int): IO[Option[Provider]]
   def insertProvider(name: String): IO[Int]
+  def fetchRandomProvider(): IO[Provider]
 end ProviderDAO
 
 case class ProviderDAOSkunkImpl(
@@ -23,6 +24,23 @@ case class ProviderDAOSkunkImpl(
      """.query(Provider.skunkDecoder)
   end providerQuery
 
+  private val providerQueryGetRandom: Query[Void, Provider] =
+    sql"""
+      SELECT id, name
+      FROM provider
+      ORDER BY random()
+      LIMIT 1
+     """.query(Provider.skunkDecoder)
+  end providerQueryGetRandom
+
+  override def fetchRandomProvider(): IO[Provider] =
+    skunkConnection
+      .use(
+        _.execute(providerQueryGetRandom).map(_.headOption)
+      )
+      .map(_.getOrElse(Provider(0, "No provider found")))
+  end fetchRandomProvider
+
   override def fetchProvider(providerId: Int): IO[Option[Provider]] =
     skunkConnection.use(
       _.execute(providerQuery)(providerId).map(_.headOption)
@@ -31,7 +49,7 @@ case class ProviderDAOSkunkImpl(
 
   private val insertproviderQuery: Query[String, Int] =
     sql"""
-      INSERT INTO client (name)
+      INSERT INTO provider (name)
       VALUES ($varchar)
       RETURNING id
      """.query(int4)

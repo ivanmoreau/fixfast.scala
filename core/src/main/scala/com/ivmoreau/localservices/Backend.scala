@@ -1,6 +1,7 @@
 package com.ivmoreau.localservices
 
-import cats.effect.IO
+import cats.data.OptionT
+import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.ivmoreau.localservices.model.{Client, User}
 import com.ivmoreau.localservices.service.UserService
@@ -20,9 +21,11 @@ import tsec.authentication.{
 import tsec.authentication.*
 import tsec.authorization.*
 import org.http4s.dsl.io.*
-import org.http4s.headers.Location
+import org.http4s.headers.{Location, `Content-Type`}
 import org.http4s.implicits.uri
 import tsec.mac.jca.HMACSHA256
+import fs2.Stream
+import org.http4s.multipart.Multipart
 
 trait Backend:
 
@@ -174,7 +177,7 @@ trait Backend:
             }
             address <- IO
               .fromOption(form.getFirst("address"))(
-                new Exception("Adress not found")
+                new Exception("Adresss not found")
               )
               .map { str =>
                 if str.isEmpty then "{ lat: 0, lng: 0 }"
@@ -201,39 +204,117 @@ trait Backend:
         }
     }
 
+  private def imageResponse(path: String): IO[Response[IO]] = IO(for {
+    _ <- logger.info(s"Fetching image $path")
+    // If file doesn't exist, fail
+    _ <- IO.whenA(java.nio.file.Files.notExists(java.nio.file.Paths.get(path)))(
+      IO.raiseError(new Exception("File not found"))
+    )
+    fst <- IO {
+      fs2.io.file
+        .Files[IO]
+        .readAll(
+          fs2.io.file.Path.apply(path)
+        )
+    }
+    res <- Ok(fst)
+      .map(
+        _.withContentType(
+          `Content-Type`(new org.http4s.MediaType("image", "png"))
+        )
+      )
+  } yield res).flatten.handleErrorWith { case e: Exception =>
+    logger.error(e)(s"Error fetching image: $e") *> StaticFile
+      .fromResource[IO](s"assets/images/no_profile_picture.png")
+      .getOrElseF(NotFound())
+  }
+
+  val miscRouterImages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> "profile-images" /: path =>
+      imageResponse(s"profile-images/$path.png")
+  }
+
   val miscRouter: HttpRoutes[IO] =
     Auth.liftService(TSecAuthService {
       case req @ GET -> Root / "feed" asAuthed user =>
-        userService
-          .fetchName(user.email)
-          .map { name =>
+        (for {
+          name <- userService.fetchName(user.email)
+          randomProcider <- userService.fetchRandomProvider()
+          res <- IO {
             Response[IO](Ok).withEntity {
               Template("templates/screens/FeedScreen/feed.html").withContext(
                 Map(
                   "wenas" -> "Wenas, mi estimado, bienvenido a la página de feed :3 UwU",
                   "name" -> name.getOrElse("Anónimo"),
-                  "email" -> user.email
+                  "email" -> user.email,
+                  "randomProviderName" -> randomProcider.name,
+                  "showRandomProviderInfo" -> !randomProcider.name
+                    .contains("No provider found")
                 )
               )
             }
           }
-          .handleErrorWith { case e: Exception =>
-            logger.error(e)(s"Error fetching user name: $e") *> BadRequest()
-          }
-    }) <+>
-      // Not authorized routing
-      HttpRoutes.of[IO] { case GET -> Root / "feed" =>
-        IO {
-          Response[IO](SeeOther).withEntity {
-            Template("templates/screens/SignInScreen/inicia-sesion.html")
-              .withContext(
-                Map(
-                  "wenas" -> "Wenas, mi estimado, bienvenido a la página de login :3 UwU"
-                )
+        } yield res)
+      case req @ GET -> Root / "user-profile" asAuthed user =>
+        (for {
+          name <- userService.fetchName(user.email)
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/UserProfileScreen/user-profile.html"
               )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email
+                  )
+                )
+            }
           }
-        }
-      }
+        } yield res)
+      case req @ GET -> Root / "logout" asAuthed user =>
+        Auth.authenticator
+          .discard(req.authenticator)
+          .map(
+            Auth.authenticator.embed(
+              Response[IO](SeeOther)
+                .putHeaders(Location(Uri.unsafeFromString("/"))),
+              _
+            )
+          )
+      case req @ POST -> Root / "upload-image" asAuthed user =>
+        println("uploading image")
+        req.request
+          .decode[Multipart[IO]] { multipart =>
+            // Get the image from the form
+            multipart.parts
+              .collectFirst {
+                case part if part.name.contains("file") =>
+                  // Save it in pwd/profile-images/<email>.png
+                  // local storage
+                  val path = s"profile-images/${user.email}.png"
+                  fs2.io.file
+                    .Files[IO]
+                    .writeAll(
+                      fs2.io.file.Path.apply {
+                        path
+                      }
+                    )(part.body)
+                    .compile
+                    .drain
+                    .map(_ => Ok())
+              }
+              .map(_.flatten)
+              .getOrElse(
+                BadRequest("Missing or invalid 'image' part in the request")
+              )
+
+          }
+          .handleErrorWith { case e: Exception =>
+            logger.error(e)(s"Error uploading image: $e") *> BadRequest()
+          }
+    })
 
   val assetsRouter: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> "assets" /: path =>
@@ -250,7 +331,7 @@ trait Backend:
         )
       }
     }
-  } <+> userController <+> assetsRouter <+> miscRouter
+  } <+> miscRouterImages <+> userController <+> assetsRouter <+> miscRouter
 
   val httpApp = Router("/" -> rootRouter).orNotFound
 end Backend

@@ -26,6 +26,7 @@ trait UserService:
   ): IO[Unit]
   def fetchUser(email: String): IO[Option[User]]
   def fetchName(email: String): IO[Option[String]]
+  def fetchRandomProvider(): IO[Provider]
 end UserService
 
 case class UserServiceImpl(
@@ -103,5 +104,8 @@ case class UserServiceImpl(
               }
         case None => IO.pure(None)
       }
+
+  def fetchRandomProvider(): IO[Provider] =
+    providerDAO.fetchRandomProvider()
 
 end UserServiceImpl
