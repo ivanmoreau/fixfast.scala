@@ -34,12 +34,12 @@
             <button id="user-nav-btns">
                 <a href="">
                     <div id="user-circle">
-                        <img id="profilePictureImage-small" src="../../../assets/images/no_profile_picture.png" alt="profile_pic">
+                        <img id="profilePictureImage-small" src="/profile-images/{{email}}" alt="profile_pic">
                     </div>
                 </a>
                 <div>
-                    <h3 id="name-user"></h3>
-                    <h3 id="correo-user"></h3>
+                    <h3 id="name-user">{{name}}</h3>
+                    <h3 id="correo-user">{{email}}</h3>
                 </div>
             </button>
         </nav>
@@ -49,7 +49,7 @@
             <div id="profile-pic" style="margin-top: 5rem; ">
                 <img src="/profile-images/{{email}}" id="profilePictureImage" alt="">
             </div>
-            <h3 id="name-profile"> </h3>
+            <h3 id="name-profile">{{name}}</h3>
             <form class="mb-3" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
                 <label for="profilePictureInput" >Selecciona una foto de perfil</label>
                 <input class="form-control form-control-sm"  id="profilePictureInput" type="file" accept="image/png" name="file">

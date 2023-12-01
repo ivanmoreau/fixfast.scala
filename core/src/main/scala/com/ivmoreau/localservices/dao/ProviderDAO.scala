@@ -11,6 +11,8 @@ trait ProviderDAO:
   def fetchProvider(providerId: Int): IO[Option[Provider]]
   def insertProvider(name: String): IO[Int]
   def fetchRandomProvider(): IO[Provider]
+  def getCategoryForExistingProvider(providerId: Int): IO[String]
+  def getAllByQuery(category: String, query: String): IO[List[Provider]]
 end ProviderDAO
 
 case class ProviderDAOSkunkImpl(
@@ -18,7 +20,7 @@ case class ProviderDAOSkunkImpl(
 ) extends ProviderDAO:
   private val providerQuery: Query[Int, Provider] =
     sql"""
-      SELECT id, name
+      SELECT id, name, category
       FROM provider
       WHERE id = $int4
      """.query(Provider.skunkDecoder)
@@ -26,7 +28,7 @@ case class ProviderDAOSkunkImpl(
 
   private val providerQueryGetRandom: Query[Void, Provider] =
     sql"""
-      SELECT id, name
+      SELECT id, name, category
       FROM provider
       ORDER BY random()
       LIMIT 1
@@ -38,7 +40,7 @@ case class ProviderDAOSkunkImpl(
       .use(
         _.execute(providerQueryGetRandom).map(_.headOption)
       )
-      .map(_.getOrElse(Provider(0, "No provider found")))
+      .map(_.getOrElse(Provider(0, "No provider found", "No category")))
   end fetchRandomProvider
 
   override def fetchProvider(providerId: Int): IO[Option[Provider]] =
@@ -49,7 +51,7 @@ case class ProviderDAOSkunkImpl(
 
   private val insertproviderQuery: Query[String, Int] =
     sql"""
-      INSERT INTO provider (name)
+      INSERT INTO provider (name, category)
       VALUES ($varchar)
       RETURNING id
      """.query(int4)
@@ -64,4 +66,41 @@ case class ProviderDAOSkunkImpl(
       }
     )
   end insertProvider
+
+  private val getCategoryForExistingProviderQuery: Query[Int, String] =
+    sql"""
+        SELECT category
+        FROM provider
+        WHERE id = $int4
+         """.query(varchar)
+  end getCategoryForExistingProviderQuery
+
+  override def getCategoryForExistingProvider(providerId: Int): IO[String] =
+    skunkConnection.use(
+      _.execute(getCategoryForExistingProviderQuery)(providerId).flatMap {
+        list =>
+          IO {
+            list.head
+          }
+      }
+    )
+  end getCategoryForExistingProvider
+
+  private val getAllByQueryQuery: Query[(String, String), Provider] =
+    sql"""
+            SELECT id, name, category
+            FROM provider
+            WHERE category = $varchar OR name ILIKE $varchar
+             """.query(Provider.skunkDecoder)
+  end getAllByQueryQuery
+
+  override def getAllByQuery(
+      category: String,
+      query: String
+  ): IO[List[Provider]] =
+    println(getAllByQueryQuery.sql)
+    skunkConnection.use(
+      _.execute(getAllByQueryQuery)((category, query)).map(_.toList)
+    )
+  end getAllByQuery
 end ProviderDAOSkunkImpl

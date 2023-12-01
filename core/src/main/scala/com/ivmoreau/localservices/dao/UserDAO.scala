@@ -11,6 +11,7 @@ import tsec.authentication.IdentityStore
 trait UserDAO:
   def fetchUser(email: String): IO[Option[User]]
   def insertUser(user: User): IO[Unit]
+  def fetchUserByProviderId(providerId: Int): IO[Option[User]]
 end UserDAO
 
 case class UserDAOSkunkImpl(
@@ -45,6 +46,20 @@ case class UserDAOSkunkImpl(
       _.prepare(userInsert).flatMap(_.execute(user)).void
     )
   end insertUser
+
+  private val userByProviderIdQuery: Query[Int, User] =
+    sql"""
+        SELECT email, password_hash, address, client_id, provider_id
+        FROM users
+        WHERE provider_id = $int4
+        """.query(User.skunkDecoder)
+  end userByProviderIdQuery
+
+  override def fetchUserByProviderId(providerId: Int): IO[Option[User]] =
+    skunkConnection.use(
+      _.execute(userByProviderIdQuery)(providerId).map(_.headOption)
+    )
+  end fetchUserByProviderId
 end UserDAOSkunkImpl
 
 class IdentityCookieStoreAccessor(

@@ -19,8 +19,10 @@ import com.ivmoreau.localservices.service.*
 import skunk.*
 import natchez.Trace.Implicits.noop
 import org.http4s.*
+import org.http4s.client.Client
 import org.http4s.dsl.io.*
 import org.http4s.netty.server.NettyServerBuilder
+import org.http4s.netty.client.NettyClientBuilder
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import tsec.cipher.symmetric.jca.{AES128GCM, SecretKey}
@@ -54,6 +56,8 @@ trait Application:
   // Services
   lazy val userService: UserService
   lazy val backend: Backend
+  lazy val client: Client[IO]
+  lazy val openAIService: OpenAIService
 
   // Something
   lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
@@ -88,6 +92,9 @@ object Main extends IOApp.Simple:
     }
     dbHost <- IO.envForIO.get("DATABASE_HOST").map(_.getOrElse("localhost"))
     redisHost <- IO.envForIO.get("REDIS_HOST")
+    openAIKey <- IO.envForIO
+      .get("OPENAI_KEY")
+      .map(_.map(OpenAIService.openAIKey))
 
     // Setup
 
@@ -100,8 +107,14 @@ object Main extends IOApp.Simple:
       max = maxConnections
     )
 
+    clientNetty = NettyClientBuilder[IO]
+      .withMaxConnectionsPerKey(10)
+      .withIdleTimeout(10.seconds)
+      .withNioTransport
+      .resource
+
     // Dependency Injection
-    _ <- skunkConnection.use { pool =>
+    _ <- skunkConnection.both(clientNetty).use { case (pool, clientNetty) =>
       logger.info("Building wiring") *>
         new Application { self =>
           lazy val logger: Logger[IO] = Main.logger
@@ -109,8 +122,15 @@ object Main extends IOApp.Simple:
           lazy val clientDAO: ClientDAO = ClientDAOSkunkImpl(pool)
           lazy val providerDAO: ProviderDAO = ProviderDAOSkunkImpl(pool)
           lazy val userDAO: UserDAO = UserDAOSkunkImpl(pool)
+          lazy val requestDAO: RequestDAO = RequestDAOSkunkImpl(pool)
           lazy val userService: UserServiceImpl =
-            UserServiceImpl(userDAO, clientDAO, providerDAO)
+            UserServiceImpl(userDAO, clientDAO, providerDAO, requestDAO)
+
+          lazy val client: Client[IO] = clientNetty
+          lazy val openAIService: OpenAIService = openAIKey match {
+            case Some(value) => OpenAIServiceImpl(client, value)
+            case None        => OpenAIServiceImplBogus
+          }
 
           lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
             HMACSHA256,
@@ -148,6 +168,8 @@ object Main extends IOApp.Simple:
               HMACSHA256,
               String
             ]] = self.Auth
+            lazy val client: Client[IO] = self.client
+            lazy val openAIService: OpenAIService = self.openAIService
           }
         }.run
     }

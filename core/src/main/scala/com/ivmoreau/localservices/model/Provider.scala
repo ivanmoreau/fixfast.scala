@@ -5,12 +5,15 @@ import skunk.codec.all.*
 
 case class Provider(
     id: Int,
-    name: String
+    name: String,
+    category: String
 )
 
 object Provider:
+  val qq: Codec[(Int, String, String)] =
+    (int4 *: varchar(255) *: varchar(255))
   val skunkDecoder: Decoder[Provider] =
-    (int4 ~ varchar(255)).to[Provider]
+    qq.to[Provider]
   val skunkEncoder: Encoder[Provider] =
-    (int4 ~ varchar(255)).values.to[Provider]
+    qq.values.to[Provider]
 end Provider

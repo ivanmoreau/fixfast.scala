@@ -31,7 +31,7 @@
                     </ul>
                 </div>
             </div>
-            <div id="nav-searchbar">
+            <form id="nav-searchbar" action="/find" method="GET">
                 <div id="categorias">
                     <div class="dropdown">
                         <button
@@ -53,20 +53,20 @@
                 </div>
                 <div id="searchbar">
                     <input type="text" placeholder="Busca un servicio" />
-                    <a href="../Profiles/profiles.html">
+                    <button type="submit" style="border: none;background: none;}">
                         <img src="../../../assets/images/search_icon.png" alt="Search Icon"/>
-                    </a>
+                    </button>
                 </div>
-            </div> 
+            </form>
             <button id="user-nav-btns">
-                <a href="../UserProfileScreen/user-profile.html">
+                <a href="/user-profile">
                     <div id="user-circle">
                         <img src="/profile-images/{{email}}" alt="profile_pic">
                     </div>
                 </a>
                 <div>
-                    <h3 id="name-user"></h3>
-                    <h3 id="correo-user"></h3>
+                    <h3 id="name-user">{{ name }}</h3>
+                    <h3 id="correo-user">{{ email }}</h3>
                 </div>
             </button>
         </nav>
@@ -86,163 +86,27 @@
                 </div>
                 <div class="row">
                     <!-- Single Advisor-->
+                    {% for provider in providers %}
                     <div class="col-12 col-sm-6 col-lg-3">
                         <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.2s" style="visibility: visible; animation-delay: 0.2s; animation-name: fadeInUp;">
                             <!-- Team Thumb-->
                             <div class="advisor_thumb">
-                                <img src="../../../assets/images/joseph-gonzalez-iFgRcqHznqg-unsplash.jpg" alt="">
+                                <img src="/profile-images/{{provider.providerEmail}}" alt="">
                                 <!-- Social Info-->
                                 <div class="social-info">
                                     <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
                                 </div>
                             </div>
                             <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
+                            <a href="/provider-profile/{{provider.providerId}}">
                                 <div class="single_advisor_details_info">
-                                    <h6>Samantha Sarah</h6>
-                                    <p class="designation">Founder &amp; CEO</p>
+                                    <h6>{{ provider.providerName }}</h6>
+                                    <p class="designation">{{ provider.providerCategory }}</p>
                                 </div>
                             </a>
                         </div>
                     </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.3s" style="visibility: visible; animation-delay: 0.3s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb">
-                                <img src="../../../assets/images//jurica-koletic-7YVZYZeITc8-unsplash.jpg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info">
-                                    <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                </div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                <div class="single_advisor_details_info">
-                                    <h6>Nazrul Islam</h6>
-                                    <p class="designation">UI Designer</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.4s" style="visibility: visible; animation-delay: 0.4s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb">
-                                <img src="../../../assets/images//pexels-photo-1130626.jpeg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info">
-                                    <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                </div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                <div class="single_advisor_details_info">
-                                    <h6>Riyadh Khan</h6>
-                                    <p class="designation">Developer</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.5s" style="visibility: visible; animation-delay: 0.5s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb">
-                                <img src="../../../assets/images//pdifrle.jpeg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info">
-                                    <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                </div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                <div class="single_advisor_details_info">
-                                    <h6>Niloy Islam</h6>
-                                    <p class="designation">Marketing Manager</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.2s" style="visibility: visible; animation-delay: 0.2s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb">
-                                <img src="../../../assets/images//joseph-gonzalez-iFgRcqHznqg-unsplash.jpg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info">
-                                    <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                </div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                <div class="single_advisor_details_info">
-                                    <h6>Samantha Sarah</h6>
-                                    <p class="designation">Founder &amp; CEO</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.3s" style="visibility: visible; animation-delay: 0.3s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb"><img src="../../../assets/images//jurica-koletic-7YVZYZeITc8-unsplash.jpg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info"><a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a></div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                            <div class="single_advisor_details_info">
-                                <h6>Nazrul Islam</h6>
-                                <p class="designation">UI Designer</p>
-                            </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.4s" style="visibility: visible; animation-delay: 0.4s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                            <div class="advisor_thumb">
-                                <img src="../../../assets/images//pexels-photo-1130626.jpeg" alt="">
-                                <!-- Social Info-->
-                                <div class="social-info">
-                                    <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                </div>
-                            </div>
-                            <!-- Team Details-->
-                            <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                <div class="single_advisor_details_info">
-                                    <h6>Riyadh Khan</h6>
-                                    <p class="designation">Developer</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                    <!-- Single Advisor-->
-                    <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.5s" style="visibility: visible; animation-delay: 0.5s; animation-name: fadeInUp;">
-                            <!-- Team Thumb-->
-                                <div class="advisor_thumb">
-                                    <img src="../../../assets/images//pdifrle.jpeg" alt="">
-                                    <!-- Social Info-->
-                                    <div class="social-info">
-                                        <a href="#"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></a>
-                                    </div>
-                                </div>
-                                <!-- Team Details-->
-                                <a href="../WorkerProfileScreen/Public/public-worker-profile.html">
-                                    <div class="single_advisor_details_info">
-                                        <h6>Niloy Islam</h6>
-                                        <p class="designation">Marketing Manager</p>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>

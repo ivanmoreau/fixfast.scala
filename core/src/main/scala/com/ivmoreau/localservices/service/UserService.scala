@@ -1,8 +1,13 @@
 package com.ivmoreau.localservices.service
 
 import cats.effect.*
-import com.ivmoreau.localservices.dao.{UserDAO, ClientDAO, ProviderDAO}
-import com.ivmoreau.localservices.model.{Client, Provider, User}
+import com.ivmoreau.localservices.dao.{
+  ClientDAO,
+  ProviderDAO,
+  UserDAO,
+  RequestDAO
+}
+import com.ivmoreau.localservices.model.{Client, Provider, Request, User}
 
 trait UserService:
   def login(email: String, passwordHash: String): IO[Option[User]]
@@ -22,17 +27,32 @@ trait UserService:
       email: String,
       passwordHash: String,
       name: String,
-      address: String
+      address: String,
+      category: String
   ): IO[Unit]
   def fetchUser(email: String): IO[Option[User]]
   def fetchName(email: String): IO[Option[String]]
   def fetchRandomProvider(): IO[Provider]
+  def fetchProvider(id: Int): IO[Option[Provider]]
+  def newRequest(
+      description: String,
+      date: String,
+      location: String,
+      providerId: Int,
+      clientId: Int
+  ): IO[Unit]
+  def getCategoryForExistingProvider(providerId: Int): IO[String]
+  def getAllByQuery(category: String, query: String): IO[List[Provider]]
+  def fetchUserByProviderId(providerId: Int): IO[Option[User]]
+  def fetchRequestsByProviderId(providerId: Int): IO[List[Request]]
+  def fetchClient(id: Int): IO[Option[Client]]
 end UserService
 
 case class UserServiceImpl(
     userDAO: UserDAO,
     clientDAO: ClientDAO,
-    providerDAO: ProviderDAO
+    providerDAO: ProviderDAO,
+    requestDAO: RequestDAO
 ) extends UserService:
   override def login(
       email: String,
@@ -77,9 +97,10 @@ case class UserServiceImpl(
       email: String,
       passwordHash: String,
       name: String,
-      address: String
+      address: String,
+      category: String
   ): IO[Unit] =
-    val provider = Provider(-1, name)
+    val provider = Provider(-1, name, category)
     newUser(email, passwordHash, address, provider)
   end newProvider
 
@@ -108,4 +129,33 @@ case class UserServiceImpl(
   def fetchRandomProvider(): IO[Provider] =
     providerDAO.fetchRandomProvider()
 
+  def fetchProvider(id: Int): IO[Option[Provider]] =
+    providerDAO.fetchProvider(id)
+
+  def newRequest(
+      description: String,
+      date: String,
+      location: String,
+      providerId: Int,
+      clientId: Int
+  ): IO[Unit] = {
+    val newRequestInit =
+      Request(-1, description, date, location, providerId, clientId)
+    requestDAO.insertRequest(newRequestInit)
+  }
+
+  def getCategoryForExistingProvider(providerId: Int): IO[String] =
+    providerDAO.getCategoryForExistingProvider(providerId)
+
+  def getAllByQuery(category: String, query: String): IO[List[Provider]] =
+    providerDAO.getAllByQuery(category, query)
+
+  def fetchUserByProviderId(providerId: Int): IO[Option[User]] =
+    userDAO.fetchUserByProviderId(providerId)
+
+  def fetchRequestsByProviderId(providerId: Int): IO[List[Request]] =
+    requestDAO.fetchRequestsByProvider(providerId)
+
+  def fetchClient(id: Int): IO[Option[Client]] =
+    clientDAO.fetchClient(id)
 end UserServiceImpl

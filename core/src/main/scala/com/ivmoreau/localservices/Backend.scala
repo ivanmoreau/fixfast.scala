@@ -4,7 +4,7 @@ import cats.data.OptionT
 import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.ivmoreau.localservices.model.{Client, User}
-import com.ivmoreau.localservices.service.UserService
+import com.ivmoreau.localservices.service.{OpenAIService, UserService}
 import org.http4s.*
 import org.http4s.dsl.io.*
 import com.ivmoreau.localservices.util.Template
@@ -26,11 +26,13 @@ import org.http4s.implicits.uri
 import tsec.mac.jca.HMACSHA256
 import fs2.Stream
 import org.http4s.multipart.Multipart
+import scala.jdk.CollectionConverters.*
 
 trait Backend:
 
   lazy val logger: Logger[IO]
   lazy val userService: UserService
+  lazy val openAIService: OpenAIService
 
   // Something
   lazy val Auth: SecuredRequestHandler[IO, String, User, AugmentedJWT[
@@ -188,7 +190,13 @@ trait Backend:
                 IO.raiseError(new Exception("User already exists"))
               case None => IO.unit
             }
-            _ <- userService.newProvider(email, hashedPassword, name, address)
+            _ <- userService.newProvider(
+              email,
+              hashedPassword,
+              name,
+              address,
+              category
+            )
             token <- Auth.authenticator
               .create(email)
               .map(
@@ -246,7 +254,7 @@ trait Backend:
           if user.clientId.isDefined =>
         (for {
           name <- userService.fetchName(user.email)
-          randomProcider <- userService.fetchRandomProvider()
+          randomProvider <- userService.fetchRandomProvider()
           res <- IO {
             Response[IO](Ok).withEntity {
               Template("templates/screens/FeedScreen/feed.html").withContext(
@@ -254,9 +262,10 @@ trait Backend:
                   "wenas" -> "Wenas, mi estimado, bienvenido a la página de feed :3 UwU",
                   "name" -> name.getOrElse("Anónimo"),
                   "email" -> user.email,
-                  "randomProviderName" -> randomProcider.name,
-                  "showRandomProviderInfo" -> !randomProcider.name
-                    .contains("No provider found")
+                  "randomProviderName" -> randomProvider.name,
+                  "showRandomProviderInfo" -> !randomProvider.name
+                    .contains("No provider found"),
+                  "randomProviderCode" -> randomProvider.id
                 )
               )
             }
@@ -295,6 +304,212 @@ trait Backend:
                     "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
                     "name" -> name.getOrElse("Anónimo"),
                     "email" -> user.email
+                  )
+                )
+            }
+          }
+        } yield res)
+      case req @ GET -> Root / "provider-profile" / IntVar(id) asAuthed user
+          if user.clientId.isDefined =>
+        (for {
+          name <- userService.fetchName(user.email)
+          providerMaybe <- userService.fetchProvider(id)
+          provider <- IO.fromOption(providerMaybe)(
+            new Exception("Provider not found")
+          )
+          description <- openAIService
+            .getDescription(provider.name, provider.category)
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/WorkerProfileScreen/Public/public-worker-profile.html"
+              )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email,
+                    "providerName" -> provider.name,
+                    "providerDescription" -> description,
+                    "providerId" -> provider.id
+                    // "providerCategory" -> provider.category,
+                    // "providerAddress" -> provider.address
+                  )
+                )
+            }
+          }
+        } yield res)
+      case req @ GET -> Root / "provider-comments" / IntVar(id) asAuthed user =>
+        (for {
+          name <- userService.fetchName(user.email)
+          providerMaybe <- userService.fetchProvider(id)
+          provider <- IO.fromOption(providerMaybe)(
+            new Exception("Provider not found")
+          )
+          description <- openAIService
+            .getDescription(provider.name, provider.category)
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/WorkerProfileScreen/Public/worker-comments.html"
+              )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email,
+                    "providerName" -> provider.name,
+                    "providerId" -> provider.id,
+                    "providerDescription" -> description
+                  )
+                )
+            }
+          }
+        } yield res)
+      case req @ GET -> Root / "request-fixer" / IntVar(id) asAuthed user
+          if user.clientId.isDefined =>
+        (for {
+          name <- userService.fetchName(user.email)
+          providerMaybe <- userService.fetchProvider(id)
+          provider <- IO.fromOption(providerMaybe)(
+            new Exception("Provider not found")
+          )
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/AskServiceScreen/solicitar-servicio.html"
+              )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email,
+                    "providerName" -> provider.name,
+                    "providerId" -> provider.id
+                  )
+                )
+            }
+          }
+        } yield res)
+      case req @ POST -> Root / "request-fixer" / IntVar(id) asAuthed user
+          if user.clientId.isDefined =>
+        // we have description, date, location.
+        req.request.decode[UrlForm] { form =>
+          (for {
+            description <- IO.fromOption(form.getFirst("description"))(
+              new Exception("Description not found")
+            )
+            date <- IO.fromOption(form.getFirst("date"))(
+              new Exception("Date not found")
+            )
+            location <- IO
+              .fromOption(form.getFirst("address"))(
+                new Exception("Address not found")
+              )
+              .map { str =>
+                if str.isEmpty then "{ lat: 0, lng: 0 }"
+                else str
+              }
+            providerMaybe <- userService.fetchProvider(id)
+            provider <- IO.fromOption(providerMaybe)(
+              new Exception("Provider not found")
+            )
+            _ <- userService.newRequest(
+              description,
+              date,
+              location,
+              provider.id,
+              user.clientId.get
+            )
+            res <- IO {
+              Response[IO](SeeOther)
+                .putHeaders(Location(Uri.unsafeFromString("/feed")))
+            }
+          } yield res).handleErrorWith { case e: Exception =>
+            logger.error(e)(s"Error creating request: $e") *> BadRequest()
+          }
+        }
+      case req @ GET -> Root / "find" asAuthed user
+          if user.clientId.isDefined =>
+        req.request.decode[UrlForm] { form =>
+          (for {
+            _ <- IO.unit
+            category = form.getFirst("category")
+            query = form.getFirst("query")
+            name <- userService.fetchName(user.email)
+            providers <- userService
+              .getAllByQuery(
+                category.getOrElse(""),
+                s"%${query.getOrElse("")}%"
+              )
+            providersU <- providers.map { providers =>
+              userService
+                .fetchUserByProviderId(providers.id)
+                .flatMap { user =>
+                  IO.fromOption(user) {
+                    new Exception("User not found")
+                  }
+                }
+                .map { user =>
+                  Map(
+                    "providerName" -> providers.name,
+                    "providerId" -> providers.id,
+                    "providerCategory" -> providers.category,
+                    "providerEmail" -> user.email
+                  ).asJava
+                }
+            }.sequence
+            res <- IO {
+              println(providersU)
+              Response[IO](Ok).withEntity {
+                Template(
+                  "templates/screens/Profiles/profiles.html"
+                )
+                  .withContext(
+                    Map(
+                      "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                      "name" -> name.getOrElse("Anónimo"),
+                      "email" -> user.email,
+                      "providers" -> providersU.asJava
+                    )
+                  )
+              }
+            }
+          } yield res)
+        }
+      case req @ GET -> Root / "requests" asAuthed user
+          if user.providerId.isDefined =>
+        (for {
+          name <- userService.fetchName(user.email)
+          requests <- userService.fetchRequestsByProviderId(user.providerId.get)
+          providersU <- requests.map { requests =>
+            userService
+              .fetchClient(requests.clientId)
+              .flatMap { user =>
+                IO.fromOption(user) {
+                  new Exception("User not found")
+                }
+              }
+              .map { user =>
+                Map(
+                  "clientName" -> user.name,
+                  "location" -> requests.location,
+                  "date" -> requests.requestDate,
+                  "description" -> requests.serviceDescription
+                ).asJava
+              }
+          }.sequence
+          res <- IO {
+            Response[IO](Ok).withEntity {
+              Template(
+                "templates/screens/WorkerProfileScreen/Private/private-worker-requests.html"
+              )
+                .withContext(
+                  Map(
+                    "wenas" -> "Wenas, mi estimado, bienvenido a la página de perfil :3 UwU",
+                    "name" -> name.getOrElse("Anónimo"),
+                    "email" -> user.email,
+                    "requests" -> providersU.asJava
                   )
                 )
             }

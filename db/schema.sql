@@ -49,7 +49,8 @@ ALTER SEQUENCE public.client_id_seq OWNED BY public.client.id;
 
 CREATE TABLE public.provider (
     id integer NOT NULL,
-    name character varying(255) NOT NULL
+    name character varying(255) NOT NULL,
+    category character varying(255)
 );
 
 
@@ -71,6 +72,40 @@ CREATE SEQUENCE public.provider_id_seq
 --
 
 ALTER SEQUENCE public.provider_id_seq OWNED BY public.provider.id;
+
+
+--
+-- Name: requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.requests (
+    id integer NOT NULL,
+    service_description text NOT NULL,
+    request_date character varying(255) NOT NULL,
+    location character varying(255) NOT NULL,
+    provider_id integer,
+    client_id integer
+);
+
+
+--
+-- Name: requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.requests_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.requests_id_seq OWNED BY public.requests.id;
 
 
 --
@@ -110,6 +145,13 @@ ALTER TABLE ONLY public.provider ALTER COLUMN id SET DEFAULT nextval('public.pro
 
 
 --
+-- Name: requests id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.requests ALTER COLUMN id SET DEFAULT nextval('public.requests_id_seq'::regclass);
+
+
+--
 -- Name: client client_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -126,6 +168,14 @@ ALTER TABLE ONLY public.provider
 
 
 --
+-- Name: requests requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.requests
+    ADD CONSTRAINT requests_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -139,6 +189,22 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (email);
+
+
+--
+-- Name: requests requests_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.requests
+    ADD CONSTRAINT requests_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.client(id) ON DELETE CASCADE;
+
+
+--
+-- Name: requests requests_provider_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.requests
+    ADD CONSTRAINT requests_provider_id_fkey FOREIGN KEY (provider_id) REFERENCES public.provider(id) ON DELETE CASCADE;
 
 
 --
@@ -168,4 +234,7 @@ ALTER TABLE ONLY public.users
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20231114084213'),
-    ('20231126053720');
+    ('20231126053720'),
+    ('20231201133226'),
+    ('20231201134956'),
+    ('20231201141338');
